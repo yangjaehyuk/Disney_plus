@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import axiosInstance from '../api/axios';
 import './Row.css';
-import MovieModal from './MovieModal/MovieModal.css';
+import MovieModal from './MovieModal/MovieModal.js';
 
 const Row = ({ title, id, fetchUrl }) => {
   const [movies, setMovies] = useState([]);
