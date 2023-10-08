@@ -1,12 +1,36 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-
+import {
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth';
 const Nav = () => {
+  const initialUserData = localStorage.getItem('userData')
+    ? JSON.parse(localStorage.getItem('userData'))
+    : {};
   const [show, setShow] = useState(false);
   const [searchValue, setSearchValue] = useState('');
+  const [userData, setUserData] = useState(initialUserData);
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const auth = getAuth();
+  const provider = new GoogleAuthProvider();
+
+  useEffect(() => {
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if (pathname === '/') {
+          navigate('/main');
+        }
+      } else {
+        navigate('/');
+      }
+    });
+  }, [auth, navigate, pathname]);
 
   const listener = () => {
     if (window.scrollY > 50) {
@@ -28,10 +52,39 @@ const Nav = () => {
     navigate(`/search?q=${e.target.value}`);
   };
 
+  const handleAuth = () => {
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        setUserData(result.user);
+        localStorage.setItem('userData', JSON.stringify(result.user));
+      })
+      .catch((err) => {
+        console.err(err);
+      });
+  };
+
+  const handleLogOut = () => {
+    signOut(auth)
+      .then(() => {
+        setUserData({});
+        navigate('/');
+      })
+      .catch((err) => {
+        console.err(err);
+      });
+  };
+
   return (
     <NavWrapper $show={show}>
+      <Logo>
+        <img
+          alt="Disney Plus Logo"
+          src="/images/logo.svg"
+          onClick={() => (window.location.href = '/')}
+        />
+      </Logo>
       {pathname === '/' ? (
-        <Login>Login</Login>
+        <Login onClick={handleAuth}>Login</Login>
       ) : (
         <>
           <Input
@@ -41,9 +94,9 @@ const Nav = () => {
             onChange={handleChange}
           />
           <SignOut>
-            <UserImg />
+            <UserImg src={userData.photoURL} alt={userData.displayName} />
             <DropDown>
-              <span>Sign Out</span>
+              <span onClick={handleLogOut}>Sign Out</span>
             </DropDown>
           </SignOut>
         </>
@@ -84,16 +137,20 @@ const SignOut = styled.div`
 `;
 
 const UserImg = styled.img`
+  width: 100%;
   height: 100%;
   border-radius: 50%;
 `;
 
 const Login = styled.a`
   background-color: rgba(0, 0, 0, 0.6);
-  padding: 8px 16px;
+  padding: 8px, 16px;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
   border: 1px solid #f9f9f9;
   border-radius: 4px;
   transition: all 0.2s ease 0s;
+  cursor: pointer;
 
   &:hover {
     background-color: #f9f9f9;
@@ -135,7 +192,7 @@ const Logo = styled.a`
   max-height: 70px;
   font-size: 0;
   display: inline-block;
-
+  cursor: pointer;
   img {
     display: block;
     width: 100%;
