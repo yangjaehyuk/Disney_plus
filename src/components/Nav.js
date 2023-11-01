@@ -8,26 +8,24 @@ import {
   signInWithPopup,
   signOut,
 } from 'firebase/auth';
+import { useDispatch, useSelector } from 'react-redux';
+import { setUser, removeUser } from '../store/userSlice';
 const Nav = () => {
-  const initialUserData = localStorage.getItem('userData')
-    ? JSON.parse(localStorage.getItem('userData'))
-    : {};
   const [show, setShow] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  const [userData, setUserData] = useState(initialUserData);
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const auth = getAuth();
   const provider = new GoogleAuthProvider();
+  const dispatch = useDispatch();
+  const userData = useSelector((state) => state.user);
 
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if (pathname === '/') {
-          navigate('/main');
-        }
-      } else {
+      if (!user) {
         navigate('/');
+      } else if (user && pathname === '/') {
+        navigate('/main');
       }
     });
   }, [auth, navigate, pathname]);
@@ -55,7 +53,14 @@ const Nav = () => {
   const handleAuth = () => {
     signInWithPopup(auth, provider)
       .then((result) => {
-        setUserData(result.user);
+        dispatch(
+          setUser({
+            id: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            photoURL: result.user.photoURL,
+          })
+        );
         localStorage.setItem('userData', JSON.stringify(result.user));
       })
       .catch((err) => {
@@ -66,7 +71,7 @@ const Nav = () => {
   const handleLogOut = () => {
     signOut(auth)
       .then(() => {
-        setUserData({});
+        dispatch(removeUser());
         navigate('/');
       })
       .catch((err) => {
